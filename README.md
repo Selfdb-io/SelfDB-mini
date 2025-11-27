@@ -2,6 +2,20 @@
 
 A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the essential features: **FastAPI** backend, **React + TypeScript** frontend, and PostgreSQL database with PgBouncer connection pooling.
 
+## Screenshots
+
+![Restore from Backups](Images/restore_from_backups_1.png)
+
+![Dashboard](Images/dashboard_2.png)
+
+![Create Backup](Images/create_backup_3.png)
+
+![Apache Bench Results](Images/apace_bench_results_4.png)
+
+![Load Test](Images/loadtest_5.png)
+
+---
+
 ## Table of Contents
 
 - [Architecture](#architecture)
