@@ -1,0 +1,4 @@
+
+# Backup files (keep folder, ignore contents)
+backups/*
+!backups/.gitkeep

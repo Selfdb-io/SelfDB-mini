@@ -1,0 +1,25 @@
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=prepend",
+    "--showlocals",
+    "--tb=short",
+]
+markers = [
+    "md5: uses MD5, will fail in FIPS mode",
+]
+timeout = 30
+
+asyncio_mode = 'auto'
+
+# Make test discovery quicker
+norecursedirs = [
+    '*.egg',
+    '.*',
+    '__pycache__',
+    'venv',
+    'src',
+    'lib',
+]
+
+[tool.isort]
+profile = 'black'

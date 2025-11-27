@@ -1,0 +1,59 @@
+# syntax=docker/dockerfile:1
+# ═══════════════════════════════════════════════════════════════════════════════
+# Day-One Frontend Dockerfile
+# React + Vite application with multi-stage build
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: Build
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* pnpm-lock.yaml* ./
+
+# Install dependencies
+RUN if [ -f pnpm-lock.yaml ]; then \
+        npm install -g pnpm && pnpm install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then \
+        npm ci; \
+    else \
+        npm install; \
+    fi
+
+# Copy source code
+COPY . .
+
+# Build args for app metadata
+ARG VITE_APP_NAME
+ARG VITE_APP_VERSION
+
+# Build the application using BuildKit secret mount
+# The secret is mounted as environment variable during build only
+# and is not stored in image layers or metadata
+RUN --mount=type=secret,id=VITE_API_KEY,env=VITE_API_KEY \
+    VITE_APP_NAME="$VITE_APP_NAME" \
+    VITE_APP_VERSION="$VITE_APP_VERSION" \
+    npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Production
+# ─────────────────────────────────────────────────────────────────────────────
+FROM nginx:alpine AS production
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
