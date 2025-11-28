@@ -13,6 +13,7 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
 ![Apache Bench Results](Images/apace_bench_results_4.png)
 
 ![Load Test](Images/loadtest_5.png)
+![Schemathesis Testis](Images/Schemathesis_6.png)
 
 ---
 
