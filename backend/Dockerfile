@@ -42,9 +42,10 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
 
-# Expose port
-EXPOSE 8000
+# Port is dynamic - set via BACKEND_PORT_CONTAINER env var at runtime
+# No hardcoded EXPOSE - port comes from environment
 
 # Run the FastAPI application
 # Use 0.0.0.0 to bind to all interfaces in container
-CMD ["uv", "run", "fastapi", "run", "--host", "0.0.0.0", "--port", "8000"]
+# Port is passed via environment variable - no fallback
+CMD ["sh", "-c", "uv run fastapi run --host 0.0.0.0 --port $BACKEND_PORT_CONTAINER"]

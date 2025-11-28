@@ -81,10 +81,13 @@ app = FastAPI(
 # This ensures API key validation happens first
 app.add_middleware(APIKeyMiddleware)
 
-# Enable CORS for local development
+# CORS origins from environment variable (required, no fallback)
+CORS_ORIGINS = os.environ["CORS_ORIGINS"].split(",")
+
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://localhost:3000", "http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -56,9 +56,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 USER pgbouncer
 
-EXPOSE 6432
+# Port is dynamic - set via LISTEN_PORT env var
+# No hardcoded EXPOSE - port comes from environment
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
-

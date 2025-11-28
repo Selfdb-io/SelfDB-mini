@@ -21,10 +21,9 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Development Setup](#development-setup)
-  - [Database Setup](#database-setup)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
+- [Port Configuration](#port-configuration)
+- [Local Development](#local-development-database-in-docker)
+- [Docker Commands](#docker-commands)
 - [SDK Generation](#sdk-generation)
 - [Testing](#testing)
   - [Schemathesis (API Contract Testing)](#schemathesis-api-contract-testing)
@@ -37,8 +36,6 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
   - [Web UI Restore (Fresh Install)](#web-ui-restore-fresh-install)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
-- [⚠️ Troubleshooting](#troubleshooting)
-  - [PgBouncer Container Fails to Start](#pgbouncer-container-fails-to-start)
 - [Contributing](#contributing)
 - [License](#license)
 - [Learn More](#learn-more)
@@ -52,7 +49,7 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
 │                 │     │                 │     │                 │
 │  React Frontend │────▶│  FastAPI Backend│────▶│   PostgreSQL    │
 │  (Vite + TS)    │     │    (Python)     │     │  + PgBouncer    │
-│  Port: 5173     │     │   Port: 8000    │     │  Port: 5433     │
+│  Port: 3000     │     │   Port: 8000    │     │  Port: 5433     │
 │                 │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -70,43 +67,69 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
 
 ## Quick Start
 
-### Option 1: Full Docker Setup (Recommended for Production)
-
-Run the entire stack with a single command:
+Use the provided setup script to download PgBouncer and start all services:
 
 ```bash
-# Build and start all services
-docker-compose up -d --build
+# Start all services (downloads PgBouncer, builds, and starts containers)
+./setup.sh
 
-# View logs
-docker-compose logs -f
+# Or explicitly run start command
+./setup.sh start
 
 # Stop all services
-docker-compose down
+./setup.sh stop
+
+# Rebuild all services (no cache)
+./setup.sh rebuild
+
+# Show help
+./setup.sh help
 ```
 
-This starts:
-- **PostgreSQL** on port `5433`
-- **PgBouncer** on port `6432` (connection pooling)
-- **Backend (FastAPI)** on port `8000`
-- **Frontend (React)** on port `80`
+**Default ports (configurable via `.env`):**
+- **Frontend**: http://localhost:3003
+- **Backend API**: http://localhost:8003
+- **API Docs**: http://localhost:8003/docs
+- **PostgreSQL**: localhost:5433
+- **PgBouncer**: localhost:6435
 
-Access the application:
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+---
 
-### Option 2: Local Development (Database in Docker)
+## Port Configuration
+
+All external ports are configurable via the `.env` file. Edit the ports to avoid conflicts with other services on your machine:
+
+```env
+# Port Configuration (Change these to avoid conflicts)
+DB_PORT=5433           # PostgreSQL external port
+PGBOUNCER_PORT=6435    # PgBouncer external port
+BACKEND_PORT=8003      # Backend API external port
+FRONTEND_PORT=3003     # Frontend external port
+```
+
+**To change ports:**
+
+1. Edit the `.env` file with your desired ports
+2. Run the setup script to apply changes:
+   ```bash
+   ./setup.sh rebuild
+   ```
+
+The setup script will rebuild and restart all services with the new port configuration.
+
+---
+
+## Local Development (Database in Docker)
 
 For development with hot-reload:
 
-#### 1. Start the Database (Docker)
+### 1. Start the Database (Docker)
 
 ```bash
-docker-compose up -d db pgbouncer
+docker compose up -d db pgbouncer
 ```
 
-#### 2. Start the Backend
+### 2. Start the Backend
 
 ```bash
 cd backend
@@ -119,7 +142,7 @@ The API will be available at http://localhost:8000
 - **API Docs (ReDoc)**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
 
-#### 3. Start the Frontend
+### 3. Start the Frontend
 
 ```bash
 cd frontend
@@ -131,118 +154,17 @@ The frontend will be available at http://localhost:5173
 
 ---
 
-## Docker Configuration
-
-### Services Overview
-
-| Service   | Image/Build        | Port  | Description                    |
-|-----------|-------------------|-------|--------------------------------|
-| db        | postgres:18       | 5433  | PostgreSQL database            |
-| pgbouncer | Custom build      | 6432  | Connection pooling             |
-| backend   | ./backend         | 8000  | FastAPI application            |
-| frontend  | ./frontend        | 80    | React + Nginx                  |
-
-### Docker Commands
+## Docker Commands
 
 ```bash
-# Build and start all services
-docker-compose up -d --build
-
-# Start only database services (for local development)
-docker-compose up -d db pgbouncer
-
-# Rebuild a specific service
-docker-compose build backend
-docker-compose up -d backend
-
 # View logs for a specific service
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Execute command in running container
-docker-compose exec backend uv run python -c "print('hello')"
-
-# Stop all services
-docker-compose down
-
-# Stop and remove volumes (clean database)
-docker-compose down -v
+docker compose exec backend uv run python -c "print('hello')"
 
 # View running services
-docker-compose ps
-```
-
----
-
-## Development Setup
-
-### Database Setup
-
-The database runs in Docker via `docker-compose.yml`:
-
-```bash
-# Start database services only
-docker-compose up -d db pgbouncer
-
-# View logs
-docker-compose logs -f db
-
-# Stop services
-docker-compose down
-
-# Stop and remove volumes (clean slate)
-docker-compose down -v
-```
-
-**Connection Details:**
-| Service    | Host      | Port | User     | Password | Database |
-|------------|-----------|------|----------|----------|----------|
-| PostgreSQL | localhost | 5433 | postgres | postgres | dayone   |
-| PgBouncer  | localhost | 6432 | postgres | postgres | dayone   |
-
-### Backend
-
-```bash
-cd backend
-
-# Install dependencies
-uv sync
-
-# Run development server (with hot reload)
-uv run fastapi dev
-
-# Run production server
-uv run fastapi run
-
-# Generate OpenAPI spec
-uv run python -c "from main import app; import json; print(json.dumps(app.openapi()))" > openapi.json
-```
-
-**Environment Variables:**
-Create a `.env` file in the `backend` directory if needed:
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/dayone
-API_KEY=Myapi-Key-for-dev
-```
-
-### Frontend
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Lint code
-npm run lint
+docker compose ps
 ```
 
 ---
@@ -623,53 +545,6 @@ When the backend is running, access the interactive API documentation:
 - All requests require `X-API-Key: Myapi-Key-for-dev` header
 - Protected endpoints also require `Authorization: Bearer <token>` header
 - Get a token via `POST /users/token` with email/password
-
----
-
-## Troubleshooting
-
-> ⚠️ **Warning:** The steps in this section involve modifying files and rebuilding containers. Make sure to backup any custom configurations before proceeding.
-
-### PgBouncer Container Fails to Start
-
-If the PgBouncer container fails to build or start, you can manually download the source and rebuild:
-
-1. **Download the PgBouncer source tarball:**
-   ```bash
-   wget https://www.pgbouncer.org/downloads/files/1.25.0/pgbouncer-1.25.0.tar.gz
-   ```
-
-2. **Extract the archive:**
-   ```bash
-   tar -xzf pgbouncer-1.25.0.tar.gz
-   ```
-
-3. **Copy the Dockerfile and entrypoint script from the existing folder:**
-   ```bash
-   cp pgbouncer-1.25.0/Dockerfile pgbouncer-1.25.0-new/Dockerfile
-   cp pgbouncer-1.25.0/docker-entrypoint.sh pgbouncer-1.25.0-new/docker-entrypoint.sh
-   ```
-   
-   Or replace the existing folder entirely:
-   ```bash
-   # Backup existing Docker files
-   cp pgbouncer-1.25.0/Dockerfile /tmp/Dockerfile.bak
-   cp pgbouncer-1.25.0/docker-entrypoint.sh /tmp/docker-entrypoint.sh.bak
-   
-   # Remove old folder and rename new one
-   rm -rf pgbouncer-1.25.0
-   mv pgbouncer-1.25.0-extracted pgbouncer-1.25.0
-   
-   # Restore Docker files
-   cp /tmp/Dockerfile.bak pgbouncer-1.25.0/Dockerfile
-   cp /tmp/docker-entrypoint.sh.bak pgbouncer-1.25.0/docker-entrypoint.sh
-   ```
-
-4. **Rebuild the PgBouncer container:**
-   ```bash
-   docker-compose build pgbouncer
-   docker-compose up -d pgbouncer
-   ```
 
 ---
 

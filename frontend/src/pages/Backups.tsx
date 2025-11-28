@@ -17,7 +17,11 @@ export default function Backups() {
     const [success, setSuccess] = useState('');
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-    const baseUrl = import.meta.env.DEV ? 'http://localhost:8000' : '/api';
+    // Use VITE_DEV_API_URL in development, /api in production
+    const baseUrl = import.meta.env.DEV ? import.meta.env.VITE_DEV_API_URL : '/api';
+    if (import.meta.env.DEV && !baseUrl) {
+        throw new Error('VITE_DEV_API_URL environment variable is required in development mode');
+    }
 
     const fetchBackups = async (showLoading = true) => {
         try {

@@ -76,4 +76,3 @@ printf '"%s" "%s"\n' "${DATABASES_USER}" "${DATABASES_PASSWORD}" > "${USERLIST_F
 chmod 600 "${USERLIST_FILE}"
 
 exec "$@"
-

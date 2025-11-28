@@ -43,17 +43,21 @@ RUN --mount=type=secret,id=VITE_API_KEY,env=VITE_API_KEY \
 # ─────────────────────────────────────────────────────────────────────────────
 FROM nginx:alpine AS production
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl for healthcheck and gettext for envsubst
+RUN apk add --no-cache curl gettext
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config template (will be processed at runtime)
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port
-EXPOSE 80
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Port is dynamic - set via NGINX_PORT env var
+# EXPOSE is documentation only, actual port comes from environment
+
+# Start nginx via entrypoint (processes template first)
+ENTRYPOINT ["/docker-entrypoint.sh"]

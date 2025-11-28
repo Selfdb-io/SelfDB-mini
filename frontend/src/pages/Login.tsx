@@ -26,8 +26,11 @@ export default function Login() {
     useEffect(() => {
         const checkSystemStatus = async () => {
             try {
-                // Use relative URL for production, absolute for dev
-                const baseUrl = import.meta.env.DEV ? 'http://localhost:8000' : '/api';
+                // Use VITE_DEV_API_URL in development, /api in production
+                const baseUrl = import.meta.env.DEV ? import.meta.env.VITE_DEV_API_URL : '/api';
+                if (import.meta.env.DEV && !baseUrl) {
+                    throw new Error('VITE_DEV_API_URL environment variable is required');
+                }
                 const response = await fetch(`${baseUrl}/system/status`, {
                     headers: {
                         'X-API-Key': API_KEY,

@@ -9,11 +9,15 @@ if (!API_KEY) {
 
 // Determine API base URL based on environment
 // In production (Docker): use /api which nginx proxies to backend
-// In development: use localhost:8000 directly
+// In development: use VITE_DEV_API_URL from environment
 const getBaseUrl = () => {
     // Check if we're in development mode (Vite dev server)
     if (import.meta.env.DEV) {
-        return 'http://localhost:8000';
+        const devApiUrl = import.meta.env.VITE_DEV_API_URL;
+        if (!devApiUrl) {
+            throw new Error('VITE_DEV_API_URL environment variable is required in development mode');
+        }
+        return devApiUrl;
     }
     // In production, use the /api proxy configured in nginx
     return '/api';

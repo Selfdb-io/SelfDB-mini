@@ -6,23 +6,20 @@ services:
   db:
     image: postgres:18
     restart: always
-    env_file:
-      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
+      # Host port configurable, container port always 5432 (PostgreSQL internal)
+      - "${DB_PORT}:5432"
     volumes:
-      # PostgreSQL 18+ requires mounting at /var/lib/postgresql (not /data subdirectory)
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dayone"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    # Optimize PostgreSQL for direct connections with asyncpg
     command:
       - "postgres"
       - "-c"
@@ -45,17 +42,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      DATABASES_HOST: ${DATABASES_HOST}
-      DATABASES_PORT: ${DATABASES_PORT}
-      DATABASES_USER: ${DATABASES_USER}
-      DATABASES_PASSWORD: ${DATABASES_PASSWORD}
-      DATABASES_DBNAME: ${DATABASES_DBNAME}
-      LISTEN_ADDR: ${LISTEN_ADDR}
-      LISTEN_PORT: ${LISTEN_PORT}
-      AUTH_TYPE: ${AUTH_TYPE}
+      # Connection to PostgreSQL (internal network, always port 5432)
+      DATABASES_HOST: db
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${POSTGRES_USER}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASES_DBNAME: ${POSTGRES_DB}
+      # PgBouncer listen settings
+      LISTEN_ADDR: "0.0.0.0"
+      LISTEN_PORT: ${PGBOUNCER_PORT}
+      AUTH_TYPE: trust
+      # Pool settings
       POOL_MODE: ${POOL_MODE}
       MAX_CLIENT_CONN: ${MAX_CLIENT_CONN}
       DEFAULT_POOL_SIZE: ${DEFAULT_POOL_SIZE}
@@ -64,12 +62,12 @@ services:
       SERVER_IDLE_TIMEOUT: ${SERVER_IDLE_TIMEOUT}
       QUERY_WAIT_TIMEOUT: ${QUERY_WAIT_TIMEOUT}
       CLIENT_IDLE_TIMEOUT: ${CLIENT_IDLE_TIMEOUT}
-      ADMIN_USERS: ${ADMIN_USERS}
-      STATS_USERS: ${STATS_USERS}
+      ADMIN_USERS: ${POSTGRES_USER}
+      STATS_USERS: ${POSTGRES_USER}
     ports:
-      - "${PGBOUNCER_PORT_HOST}:${PGBOUNCER_PORT_CONTAINER}"
+      - "${PGBOUNCER_PORT}:${PGBOUNCER_PORT}"
     healthcheck:
-      test: ["CMD-SHELL", "netstat -ln | grep -q ':6432' || exit 1"]
+      test: ["CMD-SHELL", "netstat -ln | grep -q ':${PGBOUNCER_PORT}' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,33 +86,38 @@ services:
     depends_on:
       pgbouncer:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      # Database URL built dynamically (connects to pgbouncer on internal network)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:${PGBOUNCER_PORT}/${POSTGRES_DB}
+      # Security
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
       API_KEY: ${API_KEY}
+      # Backup
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
       BACKUP_SCHEDULE_CRON: ${BACKUP_SCHEDULE_CRON}
       # App metadata
       APP_NAME: ${APP_NAME}
       APP_DESCRIPTION: ${APP_DESCRIPTION}
       APP_VERSION: ${APP_VERSION}
-      # Database connection info for pg_dump/pg_restore (direct to db, not pgbouncer)
+      # Database connection for pg_dump/pg_restore (direct to db, always port 5432)
       POSTGRES_HOST: db
-      POSTGRES_PORT: ${DB_PORT_CONTAINER}
+      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      # CORS - built dynamically from ports
+      CORS_ORIGINS: http://localhost:${BACKEND_PORT},http://localhost:${FRONTEND_PORT},http://localhost:5173
+      # Port for dynamic binding
+      BACKEND_PORT_CONTAINER: ${BACKEND_PORT}
     ports:
-      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
       - ./backups:/backups
       - ./.env:/app/.env.backup:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${BACKEND_PORT}/docs || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -134,8 +137,14 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      # Nginx always listens on port 80 inside container
+      NGINX_PORT: 80
+      # Backend port for nginx proxy_pass
+      BACKEND_PORT_CONTAINER: ${BACKEND_PORT}
     ports:
-      - "${FRONTEND_PORT_HOST}:${FRONTEND_PORT_CONTAINER}"
+      # Host port configurable, container always 80
+      - "${FRONTEND_PORT}:80"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
       interval: 30s
@@ -146,7 +155,7 @@ services:
 
 secrets:
   VITE_API_KEY:
-    environment: VITE_API_KEY
+    environment: API_KEY
 
 networks:
   dayone-network:
