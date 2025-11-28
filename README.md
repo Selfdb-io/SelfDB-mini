@@ -92,7 +92,7 @@ Use the provided setup script to download PgBouncer and start all services:
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 - **PostgreSQL**: localhost:5433
-- **PgBouncer**: localhost:6435
+- **PgBouncer**: localhost:6432
 
 ---
 
@@ -103,7 +103,7 @@ All external ports are configurable via the `.env` file. Edit the ports to avoid
 ```env
 # Port Configuration (Change these to avoid conflicts)
 DB_PORT=5433           # PostgreSQL external port
-PGBOUNCER_PORT=6435    # PgBouncer external port
+PGBOUNCER_PORT=6432    # PgBouncer external port
 BACKEND_PORT=8000     # Backend API external port
 FRONTEND_PORT=3000   # Frontend external port
 ```
