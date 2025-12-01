@@ -10,6 +10,10 @@ A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the
 
 ![Create Backup](Images/create_backup_3.png)
 
+![User Management](Images/user_management.png)
+
+![Table Management](Images/user_management.png)
+
 ![Apache Bench Results](Images/apace_bench_results_4.png)
 
 ![Load Test](Images/loadtest_5.png)
