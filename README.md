@@ -1,3 +1,6 @@
+## 🚀 SelfDB v0.05 Stable Version Released  
+The latest stable release is now available on our website.  👉 [Buy Here](https://selfdb.io)
+
 # SelfDB-mini
 
 A minimal implementation of [SelfDB](https://github.com/Selfdb-io) with only the essential features: **FastAPI** backend, **React + TypeScript** frontend, and PostgreSQL database with PgBouncer connection pooling.
